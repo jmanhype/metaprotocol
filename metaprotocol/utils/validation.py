@@ -1,9 +1,11 @@
 """Cross-model validation helpers."""
 
+from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from .types import (
+    from ..types import (
         AgentCapability,
         NegotiationProposal,
         MultiPartyProposal,
@@ -13,14 +15,14 @@ if TYPE_CHECKING:
 
 def validate_capability_not_stale(capability: "AgentCapability", max_days: int = 30) -> bool:
     """Check if a capability has been updated recently."""
-    from .utils.time import now_utc, seconds_between
+    from ..utils.time import now_utc, seconds_between
 
     age_seconds = seconds_between(capability.updated_at, now_utc())
     age_days = age_seconds / 86400.0
     return age_days < max_days
 
 
-def validate_proposal_funds(proposal: "NegotiationProposal" | "MultiPartyProposal") -> bool:
+def validate_proposal_funds(proposal: "NegotiationProposal | MultiPartyProposal") -> bool:
     """Validate that offered compensation is positive."""
     return proposal.offered_compensation > 0
 

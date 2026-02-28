@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from .storage import SQLiteStore
+from .store import SQLiteStore
 
 
 class MarketRates:

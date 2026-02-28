@@ -7,7 +7,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 if TYPE_CHECKING:
-    from .protocol import MetaProtocol
+    from ..protocol import MetaProtocol
 
 
 app = FastAPI(

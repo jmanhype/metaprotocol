@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from .models import AgentCapability, ComplexityLevel
+from .types import AgentCapability, ComplexityLevel
 
 if TYPE_CHECKING:
     from .protocol import MetaProtocol
@@ -21,7 +21,7 @@ class VAOSAdapter:
     def vaos_store(self) -> Any:
         """Lazy-load VAOS storage."""
         if self._vaos_store is None:
-            from .storage import SQLiteStore
+            from ..store import SQLiteStore
 
             self._vaos_store = SQLiteStore(db_path=self.vaos_db_path)
         return self._vaos_store
@@ -114,7 +114,7 @@ class VAOSAdapter:
 
     def export_team_to_vaos(self, team_id: str, vaos_task_id: str) -> dict[str, Any]:
         """Export a MetaProtocol team to VAOS as a task."""
-        from .models import Team
+        from .types import Team
 
         rows = self.protocol.store.query(
             "SELECT payload_json FROM teams WHERE team_id = ?",
