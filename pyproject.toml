@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "metaprotocol"
-version = "0.1.0"
+version = "0.2.0"
 description = "Coordination protocol for autonomous agents"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -19,12 +19,12 @@ dependencies = [
 [project.optional-dependencies]
 serve = ["fastapi>=0.115", "uvicorn>=0.30"]
 vectors = ["sentence-transformers>=3.0"]
-sql = ["sqlalchemy>=2.0", "aiosqlite>=0.20"]
+sql = ["sqlalchemy>=2.0", "aiosqlite>=0.20", "asyncpg>=0.29"]
 ilp = ["pulp>=2.8"]
 all = [
   "fastapi>=0.115", "uvicorn>=0.30",
   "sentence-transformers>=3.0",
-  "sqlalchemy>=2.0", "aiosqlite>=0.20",
+  "sqlalchemy>=2.0", "aiosqlite>=0.20", "asyncpg>=0.29",
   "pulp>=2.8",
 ]
 
@@ -37,3 +37,4 @@ packages = ["metaprotocol"]
 [tool.pytest.ini_options]
 addopts = "-q"
 testpaths = ["tests"]
+pythonpath = ["."]

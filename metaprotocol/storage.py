@@ -56,6 +56,12 @@ class SQLiteStore:
                 team_id TEXT PRIMARY KEY,
                 payload_json TEXT NOT NULL
             );
+
+            CREATE TABLE IF NOT EXISTS disputes (
+                dispute_id TEXT PRIMARY KEY,
+                proposal_id TEXT NOT NULL,
+                payload_json TEXT NOT NULL
+            );
             """
         )
         self.conn.commit()

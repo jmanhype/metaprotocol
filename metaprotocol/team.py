@@ -3,12 +3,24 @@ from __future__ import annotations
 from datetime import UTC, datetime
 
 from .models import DiscoveryMatch, Team, TeamAssignment, TeamFormationError, TeamInteraction, TeamStatus
+from .optimizer import TeamOptimizer
 from .storage import SQLiteStore
 
 
 class TeamFormationEngine:
-    def __init__(self, store: SQLiteStore) -> None:
+    def __init__(
+        self,
+        store: SQLiteStore,
+        strategy: str = "greedy",
+        max_team_size: int = 10,
+        timeout_ms: int = 1000,
+    ) -> None:
         self.store = store
+        self.optimizer = TeamOptimizer(
+            strategy=strategy,
+            max_team_size=max_team_size,
+            timeout_ms=timeout_ms,
+        )
 
     def form_team(
         self,
@@ -16,50 +28,36 @@ class TeamFormationEngine:
         required_skills: list[str],
         candidates: list[DiscoveryMatch],
         budget: float,
+        weights: dict[str, float] | None = None,
     ) -> TeamAssignment:
-        by_skill: dict[str, list[DiscoveryMatch]] = {skill: [] for skill in required_skills}
+        partner_history: dict[str, set[str]] = {}
+
         for candidate in candidates:
-            if candidate.name in by_skill:
-                by_skill[candidate.name].append(candidate)
+            from .reputation import ReputationSystem
 
-        coverage: dict[str, str] = {}
-        selected_agents: dict[str, DiscoveryMatch] = {}
-        for skill in required_skills:
-            options = sorted(by_skill.get(skill, []), key=lambda m: (-m.overall_score, m.cost_per_use))
-            if not options:
-                raise TeamFormationError(f"missing required skill: {skill}")
-            pick = options[0]
-            coverage[skill] = pick.agent_id
-            selected_agents[pick.agent_id] = pick
+            rep = ReputationSystem(self.store)
+            profile = rep.get_profile(candidate.agent_id)
+            partner_history[candidate.agent_id] = set(profile.partners)
 
-        total_cost = sum(match.cost_per_use for match in selected_agents.values())
-        if total_cost > budget:
-            raise TeamFormationError(f"budget exceeded: {total_cost:.4f} > {budget:.4f}")
-
-        agents = list(selected_agents.keys())
-        role_assignments: dict[str, str] = {}
-        for idx, agent_id in enumerate(agents):
-            role_assignments[agent_id] = "lead" if idx == 0 else "specialist"
-
-        team = Team(
+        assignment = self.optimizer.form_team(
             task_id=task_id,
-            agent_ids=agents,
-            role_assignments=role_assignments,
             required_skills=required_skills,
-            skill_coverage=coverage,
-            total_budget=budget,
-            status=TeamStatus.ACTIVE,
+            candidates=candidates,
+            budget=budget,
+            weights=weights,
+            partner_history=partner_history,
         )
+
         self.store.execute(
             """
             INSERT INTO teams(team_id, payload_json) VALUES (?, ?)
             ON CONFLICT(team_id) DO UPDATE SET payload_json = excluded.payload_json
             """,
-            (team.team_id, self.store.dumps_json(team.model_dump(mode="json"))),
+            (assignment.team.team_id, self.store.dumps_json(assignment.team.model_dump(mode="json"))),
         )
 
-        score = sum(m.overall_score for m in selected_agents.values()) / max(1, len(selected_agents))
-        return TeamAssignment(team=team, total_cost=total_cost, optimization_score=round(score, 4))
+        return assignment
+
 
 
 class TeamMemory:
