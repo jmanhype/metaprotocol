@@ -1,0 +1,85 @@
+from __future__ import annotations
+
+from datetime import UTC, datetime
+
+from .models import CollaborationRating, ReputationRecord, ReputationSnapshot
+from .storage import SQLiteStore
+
+
+class ReputationSystem:
+    def __init__(self, store: SQLiteStore) -> None:
+        self.store = store
+
+    def get_profile(self, agent_id: str) -> ReputationRecord:
+        rows = self.store.query("SELECT payload_json FROM reputation WHERE agent_id = ?", (agent_id,))
+        if not rows:
+            profile = ReputationRecord(agent_id=agent_id)
+            self._save(profile)
+            return profile
+        return ReputationRecord.model_validate(self.store.loads_json(rows[0]["payload_json"]))
+
+    def _save(self, profile: ReputationRecord) -> None:
+        self.store.execute(
+            """
+            INSERT INTO reputation(agent_id, payload_json) VALUES (?, ?)
+            ON CONFLICT(agent_id) DO UPDATE SET payload_json = excluded.payload_json
+            """,
+            (profile.agent_id, self.store.dumps_json(profile.model_dump(mode="json"))),
+        )
+
+    def record_outcome(
+        self,
+        agent_id: str,
+        partner_id: str,
+        collaboration_id: str,
+        success: bool,
+        partner_rating: float,
+    ) -> ReputationRecord:
+        profile = self.get_profile(agent_id)
+        profile.total_collaborations += 1
+        if success:
+            profile.successful_collaborations += 1
+        profile.success_rate = profile.successful_collaborations / max(1, profile.total_collaborations)
+
+        if partner_id not in profile.partners:
+            profile.partners.append(partner_id)
+
+        rating = CollaborationRating(
+            rater_agent_id=partner_id,
+            rated_agent_id=agent_id,
+            collaboration_id=collaboration_id,
+            score=partner_rating,
+        )
+        profile.recent_ratings.append(rating)
+        profile.recent_ratings = profile.recent_ratings[-50:]
+
+        avg_rating = sum(r.score for r in profile.recent_ratings) / len(profile.recent_ratings)
+        profile.avg_partner_satisfaction = avg_rating
+
+        delta = 0.0
+        delta += 3.0 if success else -4.0
+        delta += (partner_rating - 2.5) * 1.2
+        profile.reputation_score = max(0.0, min(100.0, profile.reputation_score + delta))
+        profile.is_verified = profile.successful_collaborations >= 3
+        profile.last_updated = datetime.now(UTC)
+        profile.reputation_history.append(
+            ReputationSnapshot(
+                score=profile.reputation_score,
+                timestamp=profile.last_updated,
+                event="collaboration_completed" if success else "collaboration_failed",
+            )
+        )
+
+        self._save(profile)
+        return profile
+
+    def apply_decay(self, toward: float = 50.0, decay_rate: float = 0.05) -> None:
+        rows = self.store.query("SELECT payload_json FROM reputation")
+        for row in rows:
+            profile = ReputationRecord.model_validate(self.store.loads_json(row["payload_json"]))
+            profile.reputation_score += (toward - profile.reputation_score) * decay_rate
+            profile.last_updated = datetime.now(UTC)
+            profile.reputation_history.append(
+                ReputationSnapshot(score=profile.reputation_score, timestamp=profile.last_updated, event="decay")
+            )
+            self._save(profile)
