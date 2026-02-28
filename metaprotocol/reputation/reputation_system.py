@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from .models import CollaborationRating, ReputationRecord, ReputationSnapshot
-from .storage import SQLiteStore
+from ..types import CollaborationRating, ReputationRecord, ReputationSnapshot
+from ..store import SQLiteStore
 
 
 class ReputationSystem:

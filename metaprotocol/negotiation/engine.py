@@ -3,15 +3,15 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta, timezone
 from typing import Any
 
-from .models import (
+from ..exceptions import NegotiationStateError
+from ..types import (
     EscrowContract,
     EscrowStatus,
     MultiPartyProposal,
     NegotiationProposal,
-    NegotiationStateError,
     NegotiationStatus,
 )
-from .storage import SQLiteStore
+from ..store import SQLiteStore
 
 
 class NegotiationEngine:

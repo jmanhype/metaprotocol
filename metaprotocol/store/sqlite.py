@@ -1,12 +1,17 @@
+"""SQLite storage backend."""
+
 from __future__ import annotations
 
-import json
 import sqlite3
 from pathlib import Path
 from typing import Any
 
+from .base import AbstractProtocolStore
 
-class SQLiteStore:
+
+class SQLiteStore(AbstractProtocolStore):
+    """SQLite-based storage backend for MetaProtocol."""
+
     def __init__(self, db_path: str | Path = ".metaprotocol.db") -> None:
         self.db_path = str(db_path)
         self.conn = sqlite3.connect(self.db_path)
@@ -52,16 +57,18 @@ class SQLiteStore:
                 payload_json TEXT NOT NULL
             );
 
-            CREATE TABLE IF NOT EXISTS team_memory (
-                team_id TEXT PRIMARY KEY,
-                payload_json TEXT NOT NULL
-            );
-
             CREATE TABLE IF NOT EXISTS disputes (
                 dispute_id TEXT PRIMARY KEY,
                 proposal_id TEXT NOT NULL,
                 payload_json TEXT NOT NULL
             );
+
+            CREATE INDEX IF NOT EXISTS idx_capabilities_agent ON capabilities(agent_id);
+            CREATE INDEX IF NOT EXISTS idx_capabilities_name ON capabilities(name);
+            CREATE INDEX IF NOT EXISTS idx_reputation_agent ON reputation(agent_id);
+            CREATE INDEX IF NOT EXISTS idx_negotiations_task ON negotiations(proposal_id);
+            CREATE INDEX IF NOT EXISTS idx_teams_task ON teams(team_id);
+            CREATE INDEX IF NOT EXISTS idx_disputes_proposal ON disputes(proposal_id);
             """
         )
         self.conn.commit()
@@ -77,15 +84,16 @@ class SQLiteStore:
         cur.executemany(sql, rows)
         self.conn.commit()
 
-    def query(self, sql: str, params: tuple[Any, ...] = ()) -> list[sqlite3.Row]:
+    def query(self, sql: str, params: tuple[Any, ...] = ()) -> list[dict[str, Any]]:
         cur = self.conn.cursor()
         cur.execute(sql, params)
-        return cur.fetchall()
+        return [dict(row) for row in cur.fetchall()]
 
-    @staticmethod
-    def dumps_json(payload: Any) -> str:
-        return json.dumps(payload, separators=(",", ":"), ensure_ascii=True)
+    def query_one(self, sql: str, params: tuple[Any, ...] = ()) -> dict[str, Any] | None:
+        rows = self.query(sql, params)
+        return rows[0] if rows else None
 
-    @staticmethod
-    def loads_json(payload: str) -> Any:
-        return json.loads(payload)
+    def close(self) -> None:
+        """Close the database connection."""
+        if self.conn:
+            self.conn.close()

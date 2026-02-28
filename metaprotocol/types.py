@@ -125,23 +125,6 @@ class CounterOffer(BaseModel):
     timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
 
-class MultiPartyProposal(BaseModel):
-    """A proposal from one agent to multiple agents for a task."""
-    proposal_id: str = Field(default_factory=lambda: str(uuid4()))
-    proposer_agent_id: str
-    responder_agent_ids: list[str]
-    task_id: str
-    required_skills: list[str]
-    offered_compensation: float
-    deadline: Optional[datetime] = None
-    escrow: bool = True
-    terms: dict = Field(default_factory=dict)
-    status: NegotiationStatus = NegotiationStatus.PROPOSED
-    responder_acceptance: dict[str, str] = Field(default_factory=dict)
-    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
-    expires_at: Optional[datetime] = None
-
-
 class NegotiationProposal(BaseModel):
     proposal_id: str = Field(default_factory=lambda: str(uuid4()))
     proposer_agent_id: str
@@ -283,11 +266,3 @@ class TeamAssignment(BaseModel):
     team: Team
     total_cost: float
     optimization_score: float
-
-
-class TeamFormationError(Exception):
-    pass
-
-
-class NegotiationStateError(Exception):
-    pass

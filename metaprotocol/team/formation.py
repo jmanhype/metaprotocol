@@ -2,9 +2,10 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from .models import DiscoveryMatch, Team, TeamAssignment, TeamFormationError, TeamInteraction, TeamStatus
-from .optimizer import TeamOptimizer
-from .storage import SQLiteStore
+from ..exceptions import TeamFormationError
+from ..types import DiscoveryMatch, Team, TeamAssignment, TeamInteraction, TeamStatus
+from .optimizer_greedy import TeamOptimizer
+from ..store import SQLiteStore
 
 
 class TeamFormationEngine:

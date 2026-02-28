@@ -4,10 +4,11 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
-from .models import DiscoveryMatch, Team, TeamAssignment, TeamFormationError, TeamStatus
+from ..exceptions import TeamFormationError
+from ..types import DiscoveryMatch, Team, TeamAssignment, TeamStatus
 
 if TYPE_CHECKING:
-    from .storage import SQLiteStore
+    from ..store import SQLiteStore
 
 
 class TeamOptimizer:

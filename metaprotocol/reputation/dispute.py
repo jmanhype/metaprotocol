@@ -7,7 +7,7 @@ from uuid import uuid4
 
 from pydantic import BaseModel, Field
 
-from .storage import SQLiteStore
+from ..store import SQLiteStore
 
 
 class DisputeStatus(str, Enum):

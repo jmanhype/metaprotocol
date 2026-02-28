@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 
-from .models import AgentCapability, ComplexityLevel, DiscoveryMatch, DiscoveryResult
-from .storage import SQLiteStore
+from ..types import AgentCapability, ComplexityLevel, DiscoveryMatch, DiscoveryResult
+from ..store import SQLiteStore
 
 
 _COMPLEXITY_ORDER = {
